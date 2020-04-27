@@ -25,6 +25,7 @@ import org.apache.flink.runtime.checkpoint.metadata.MetadataSerializer;
 import org.apache.flink.runtime.checkpoint.metadata.MetadataSerializers;
 import org.apache.flink.runtime.checkpoint.metadata.MetadataV3Serializer;
 import org.apache.flink.runtime.executiongraph.ExecutionJobVertex;
+import org.apache.flink.runtime.executiongraph.OperatorIdPair;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
 import org.apache.flink.runtime.jobgraph.OperatorID;
 import org.apache.flink.runtime.state.CompletedCheckpointStorageLocation;
@@ -137,8 +138,8 @@ public class Checkpoints {
 		// generate mapping from operator to task
 		Map<OperatorID, ExecutionJobVertex> operatorToJobVertexMapping = new HashMap<>();
 		for (ExecutionJobVertex task : tasks.values()) {
-			for (OperatorID operatorID : task.getOperatorIDs()) {
-				operatorToJobVertexMapping.put(operatorID, task);
+			for (OperatorIdPair operatorIdPair : task.getOperatorIdPairs()) {
+				operatorToJobVertexMapping.put(operatorIdPair.getOperatorId(), task);
 			}
 		}
 
@@ -152,6 +153,7 @@ public class Checkpoints {
 
 			// on the first time we can not find the execution job vertex for an id, we also consider alternative ids,
 			// for example as generated from older flink versions, to provide backwards compatibility.
+			//COULD THIS IF BLOCK BE REMOVED IF THE ALTERNATIVE IDS HAD BEEN ADDED TO THE MAPPING FROM THE START?
 			if (executionJobVertex == null && !expandedToLegacyIds) {
 				operatorToJobVertexMapping = ExecutionJobVertex.includeAlternativeOperatorIDs(operatorToJobVertexMapping);
 				executionJobVertex = operatorToJobVertexMapping.get(operatorState.getOperatorID());

@@ -22,6 +22,7 @@ import org.apache.flink.api.common.JobID;
 import org.apache.flink.runtime.checkpoint.metadata.CheckpointMetadata;
 import org.apache.flink.runtime.executiongraph.ExecutionAttemptID;
 import org.apache.flink.runtime.executiongraph.ExecutionVertex;
+import org.apache.flink.runtime.executiongraph.OperatorIdPair;
 import org.apache.flink.runtime.jobgraph.OperatorID;
 import org.apache.flink.runtime.state.CheckpointMetadataOutputStream;
 import org.apache.flink.runtime.state.CheckpointStorageLocation;
@@ -371,9 +372,12 @@ public class PendingCheckpoint {
 				acknowledgedTasks.add(executionAttemptId);
 			}
 
-			List<OperatorID> operatorIDs = vertex.getJobVertex().getOperatorIDs();
-			int subtaskIndex = vertex.getParallelSubtaskIndex();
-			long ackTimestamp = System.currentTimeMillis();
+		List<OperatorID> operatorIDs = new ArrayList<>();
+		for (OperatorIdPair operatorIdPair : vertex.getJobVertex().getOperatorIdPairs()) {
+			operatorIDs.add(operatorIdPair.getOperatorId());
+		}
+		int subtaskIndex = vertex.getParallelSubtaskIndex();
+		long ackTimestamp = System.currentTimeMillis();
 
 			long stateSize = 0L;
 

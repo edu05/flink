@@ -91,24 +91,6 @@ public class ExecutionJobVertex implements AccessExecutionJobVertex, Archiveable
 
 	private final JobVertex jobVertex;
 
-	/**
-	 * The IDs of all operators contained in this execution job vertex.
-	 *
-	 * <p>The ID's are stored depth-first post-order; for the forking chain below the ID's would be stored as [D, E, B, C, A].
-	 *  A - B - D
-	 *   \    \
-	 *    C    E
-	 * This is the same order that operators are stored in the {@code StreamTask}.
-	 */
-	private final List<OperatorID> operatorIDs;
-
-	/**
-	 * The alternative IDs of all operators contained in this execution job vertex.
-	 *
-	 * <p>The ID's are in the same order as {@link ExecutionJobVertex#operatorIDs}.
-	 */
-	private final List<OperatorID> userDefinedOperatorIds;
-
 	private final ExecutionVertex[] taskVertices;
 
 	private final IntermediateResult[] producedDataSets;
@@ -200,8 +182,6 @@ public class ExecutionJobVertex implements AccessExecutionJobVertex, Archiveable
 		this.resourceProfile = ResourceProfile.fromResourceSpec(jobVertex.getMinResources(), MemorySize.ZERO);
 
 		this.taskVertices = new ExecutionVertex[numTaskVertices];
-		this.operatorIDs = Collections.unmodifiableList(jobVertex.getOperatorIDs());
-		this.userDefinedOperatorIds = Collections.unmodifiableList(jobVertex.getUserDefinedOperatorIDs());
 
 		this.inputs = new ArrayList<>(jobVertex.getInputs().size());
 
@@ -293,8 +273,9 @@ public class ExecutionJobVertex implements AccessExecutionJobVertex, Archiveable
 	 *
 	 * @return list containing the IDs of all contained operators
 	 */
+	//CAN BE REMOVED AFTER MODIFYING TESTS
 	public List<OperatorID> getOperatorIDs() {
-		return operatorIDs;
+		return null;
 	}
 
 	/**
@@ -302,8 +283,13 @@ public class ExecutionJobVertex implements AccessExecutionJobVertex, Archiveable
 	 *
 	 * @return list containing alternative the IDs of all contained operators
 	 */
+	//CAN BE REMOVED AFTER MODIFYING TESTS
 	public List<OperatorID> getUserDefinedOperatorIDs() {
-		return userDefinedOperatorIds;
+		return null;
+	}
+
+	public List<OperatorIdPair> getOperatorIdPairs() {
+		return jobVertex.getOperatorIdPairs();
 	}
 
 	public void setMaxParallelism(int maxParallelismDerived) {

@@ -23,6 +23,7 @@ import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.runtime.executiongraph.Execution;
 import org.apache.flink.runtime.executiongraph.ExecutionJobVertex;
+import org.apache.flink.runtime.executiongraph.OperatorIdPair;
 import org.apache.flink.runtime.jobgraph.OperatorID;
 import org.apache.flink.runtime.jobgraph.OperatorInstanceID;
 import org.apache.flink.runtime.state.AbstractChannelStateHandle;
@@ -86,14 +87,12 @@ public class StateAssignmentOperation {
 		for (ExecutionJobVertex executionJobVertex : this.tasks) {
 
 			// find the states of all operators belonging to this task
-			List<OperatorID> operatorIDs = executionJobVertex.getOperatorIDs();
-			List<OperatorID> altOperatorIDs = executionJobVertex.getUserDefinedOperatorIDs();
-			List<OperatorState> operatorStates = new ArrayList<>(operatorIDs.size());
+			List<OperatorIdPair> operatorIdPairs = executionJobVertex.getOperatorIdPairs();
+			List<OperatorState> operatorStates = new ArrayList<>(operatorIdPairs.size());
 			boolean statelessTask = true;
-			for (int x = 0; x < operatorIDs.size(); x++) {
-				OperatorID operatorID = altOperatorIDs.get(x) == null
-					? operatorIDs.get(x)
-					: altOperatorIDs.get(x);
+			for (int x = 0; x < operatorIdPairs.size(); x++) {
+				OperatorIdPair operatorIdPair = operatorIdPairs.get(x);
+				OperatorID operatorID = operatorIdPair.getAlternativeOperatorId().orElse(operatorIdPair.getOperatorId());
 
 				OperatorState operatorState = localOperators.remove(operatorID);
 				if (operatorState == null) {
@@ -115,7 +114,10 @@ public class StateAssignmentOperation {
 
 	private void assignAttemptState(ExecutionJobVertex executionJobVertex, List<OperatorState> operatorStates) {
 
-		List<OperatorID> operatorIDs = executionJobVertex.getOperatorIDs();
+		List<OperatorID> operatorIDs = new ArrayList<>();
+		for (OperatorIdPair operatorIdPair : executionJobVertex.getOperatorIdPairs()) {
+			operatorIDs.add(operatorIdPair.getOperatorId());
+		}
 
 		//1. first compute the new parallelism
 		checkParallelismPreconditions(operatorStates, executionJobVertex);
@@ -214,7 +216,10 @@ public class StateAssignmentOperation {
 			Map<OperatorInstanceID, List<KeyedStateHandle>> subRawKeyedState,
 			int newParallelism) {
 
-		List<OperatorID> operatorIDs = executionJobVertex.getOperatorIDs();
+		List<OperatorID> operatorIDs = new ArrayList<>();
+		for (OperatorIdPair operatorIdPair : executionJobVertex.getOperatorIdPairs()) {
+			operatorIDs.add(operatorIdPair.getOperatorId());
+		}
 
 		for (int subTaskIndex = 0; subTaskIndex < newParallelism; subTaskIndex++) {
 
@@ -555,7 +560,10 @@ public class StateAssignmentOperation {
 
 		Set<OperatorID> allOperatorIDs = new HashSet<>();
 		for (ExecutionJobVertex executionJobVertex : tasks) {
-			allOperatorIDs.addAll(executionJobVertex.getOperatorIDs());
+			for (OperatorIdPair operatorIdPair : executionJobVertex.getOperatorIdPairs()) {
+				allOperatorIDs.add(operatorIdPair.getOperatorId());
+				operatorIdPair.getAlternativeOperatorId().ifPresent(allOperatorIDs::add);
+			}
 		}
 		for (Map.Entry<OperatorID, OperatorState> operatorGroupStateEntry : operatorStates.entrySet()) {
 			OperatorState operatorState = operatorGroupStateEntry.getValue();

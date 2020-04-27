@@ -23,6 +23,7 @@ import org.apache.flink.api.common.InputDependencyConstraint;
 import org.apache.flink.api.common.operators.ResourceSpec;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.io.InputSplitSource;
+import org.apache.flink.runtime.executiongraph.OperatorIdPair;
 import org.apache.flink.runtime.io.network.partition.ResultPartitionType;
 import org.apache.flink.runtime.jobgraph.tasks.AbstractInvokable;
 import org.apache.flink.runtime.jobmanager.scheduler.CoLocationGroup;
@@ -33,7 +34,9 @@ import org.apache.flink.util.SerializedValue;
 
 import javax.annotation.Nullable;
 
+import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -42,7 +45,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 /**
  * The base class for job vertexes.
  */
-public class JobVertex implements java.io.Serializable {
+public class JobVertex implements Serializable {
 
 	private static final long serialVersionUID = 1L;
 
@@ -59,10 +62,10 @@ public class JobVertex implements java.io.Serializable {
 	private final ArrayList<JobVertexID> idAlternatives = new ArrayList<>();
 
 	/** The IDs of all operators contained in this vertex. */
-	private final ArrayList<OperatorID> operatorIDs = new ArrayList<>();
+	private final List<OperatorID> operatorIDs;
 
 	/** The alternative IDs of all operators contained in this vertex. */
-	private final ArrayList<OperatorID> operatorIdsAlternatives = new ArrayList<>();
+	private final List<OperatorID> operatorIdsAlternatives;
 
 	/** List of produced data sets, one per writer. */
 	private final ArrayList<IntermediateDataSet> results = new ArrayList<>();
@@ -144,8 +147,8 @@ public class JobVertex implements java.io.Serializable {
 		this.name = name == null ? DEFAULT_NAME : name;
 		this.id = id == null ? new JobVertexID() : id;
 		// the id lists must have the same size
-		this.operatorIDs.add(OperatorID.fromJobVertexID(this.id));
-		this.operatorIdsAlternatives.add(null);
+		this.operatorIDs = Collections.unmodifiableList(Arrays.asList(OperatorID.fromJobVertexID(this.id)));
+		this.operatorIdsAlternatives = Collections.unmodifiableList(Arrays.asList(null));
 	}
 
 	/**
@@ -162,8 +165,8 @@ public class JobVertex implements java.io.Serializable {
 		this.name = name == null ? DEFAULT_NAME : name;
 		this.id = primaryId == null ? new JobVertexID() : primaryId;
 		this.idAlternatives.addAll(alternativeIds);
-		this.operatorIDs.addAll(operatorIds);
-		this.operatorIdsAlternatives.addAll(alternativeOperatorIds);
+		this.operatorIDs = Collections.unmodifiableList(operatorIds);
+		this.operatorIdsAlternatives = Collections.unmodifiableList(alternativeOperatorIds);
 	}
 
 	// --------------------------------------------------------------------------------------------
@@ -222,12 +225,23 @@ public class JobVertex implements java.io.Serializable {
 		return this.inputs.size();
 	}
 
+	//CAN BE REMOVED AFTER MODIFYING TESTS
 	public List<OperatorID> getOperatorIDs() {
-		return operatorIDs;
+		return null;
 	}
 
+	//CAN BE REMOVED AFTER MODIFYING TESTS
 	public List<OperatorID> getUserDefinedOperatorIDs() {
 		return operatorIdsAlternatives;
+	}
+
+	public List<OperatorIdPair> getOperatorIdPairs() {
+		List<OperatorIdPair> operatorIdPairs = new ArrayList<>();
+		for (int i = 0; i < operatorIDs.size(); i++) {
+			operatorIdPairs.add(new OperatorIdPair(operatorIDs.get(i), operatorIdsAlternatives.get(i)));
+		}
+
+		return Collections.unmodifiableList(operatorIdPairs);
 	}
 
 	/**
